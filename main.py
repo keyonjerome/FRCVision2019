@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+np.set_printoptions(threshold=np.inf)
 # define the HSV threshold ranges.
 hue_range = [28,85]
 saturation_range = [23,255]
@@ -23,12 +24,13 @@ def hsv_threshold(input, hue, saturation, value):
     return cv2.inRange(out, (hue[0], saturation[0], value[0]), (hue[1], saturation[1], value[1]))
 
 
-cap = cv2.VideoCapture(1)
-
-while True:
-    ret, bgr_img = cap.read()
+cap = cv2.VideoCapture(0)
+test = True
+while test:
+    test = False
+    #ret, bgr_img = cap.read()
     # read in the image
-    #bgr_img = cv2.imread('testimages/retroreflectivetapegreen.jpg')
+    bgr_img = cv2.imread('testimages/retroreflectivetapegreen.jpg')
 
 
     # resize the image to 300x300, 0.5 interpolation if (300,300) does not work correctly
@@ -69,18 +71,42 @@ while True:
 
          #print("Area: {}, perimeter: {}".format(area,perimeter))
 
-        rect = cv2.minAreaRect(c)
-        box = cv2.boxPoints(rect)
-        box = np.int0(box)
-        cv2.drawContours(objects, [box], 0, (0, 0, 255), 2)
+    rect = cv2.minAreaRect(c)
+    box = cv2.boxPoints(rect)
+    points = cv2.boxPoints(rect)
 
-        cv2.imshow("Objects",objects)
+    #widthOfBox = sqrt(points[0][0])
 
-        givenKey = cv2.waitKey(1)
-        if givenKey == ord('x'):
-            break
+    # print out the box's 4 corners
+    print(points)
+    box = np.int0(box)
+    cv2.drawContours(objects, [box], 0, (0, 0, 255), 2)
 
 
+    # bottom right: points[0]
+    cv2.circle(objects,(points[0][0],points[0][1]),20,(255,0,0),thickness=1, lineType=8, shift=0)
+    # bottom left: points[1]
+    cv2.circle(objects, (points[1][0], points[1][1]), 20, (255, 0, 0), thickness=1, lineType=8, shift=0)
+    # top left: points[2]
+    cv2.circle(objects, (points[2][0], points[2][1]), 20, (255, 0, 0), thickness=1, lineType=8, shift=0)
+
+    #top right: points[3]
+    cv2.circle(objects, (points[3][0], points[3][1]), 20, (255, 0, 0), thickness=1, lineType=8, shift=0)
+     #corners = cv2.goodFeaturesToTrack(rec,4,0.01,10)
+
+    #corners = np.int0(corners)
+    #for corner in corners:
+    #   x,y = corner.ravel()
+    #   cv2.circle(thresholded_image,(x,y),90,30,-1)
+
+     #   givenKey = cv2.waitKey(0)
+     #   if givenKey == ord('x'):
+     #       break
+
+    cv2.imshow("Image",thresholded_image)
+    cv2.imshow("Objects",objects)
+
+    cv2.waitKey(0)
 
     #cv2.imshow("Thresholded image",thresholded_image)
 cap.release()
