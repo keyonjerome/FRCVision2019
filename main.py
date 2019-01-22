@@ -1,5 +1,32 @@
+import math
+
 import cv2
 import numpy as np
+import threading
+from networktables import NetworkTables
+'''
+cond = threading.Condition()
+notified = [False]
+
+# listen for a connection to the robot
+def connectionListener(connected, info):
+    print(info, '; Connected=%s' % connected)
+    with cond:
+        notified[0] = True
+        cond.notify()
+
+NetworkTables.initialize(server='10.52.88.10')
+NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
+
+# as long as the Jetson has not connected, wait for a connection
+with cond:
+    print("Waiting")
+    if not notified[0]:
+        cond.wait()
+# At this point, the jetson has connected.
+print("Connected!")
+'''
+
 np.set_printoptions(threshold=np.inf)
 # define the HSV threshold ranges.
 hue_range = [28,85]
@@ -27,10 +54,10 @@ def hsv_threshold(input, hue, saturation, value):
 cap = cv2.VideoCapture(0)
 test = True
 while test:
-    test = False
-    #ret, bgr_img = cap.read()
+    #test = False
+    ret, bgr_img = cap.read()
     # read in the image
-    bgr_img = cv2.imread('testimages/retroreflectivetapegreen.jpg')
+    #bgr_img = cv2.imread('testimages/retroreflectivetapegreen.jpg')
 
 
     # resize the image to 300x300, 0.5 interpolation if (300,300) does not work correctly
@@ -47,7 +74,7 @@ while test:
 
     # Run an HSV threshold on the image to isolate the retroreflective tape.
     thresholded_image = hsv_threshold(blurred_image,hue_range,saturation_range,value_range)
-    print(thresholded_image)
+    #print(thresholded_image)
 
 
     contours, hierarchy = cv2.findContours(thresholded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -70,18 +97,30 @@ while test:
         #cv2.circle(objects, (cx,cy), 4, (0,0,255),-1)
 
          #print("Area: {}, perimeter: {}".format(area,perimeter))
-
+    print(contours)
     rect = cv2.minAreaRect(c)
+    #get rectangle information
+    # https://stackoverflow.com/questions/36293335/using-bounding-rectangle-to-get-rotation-angle-not-working-opencv-python
+    center = rect[0]
+    angle = rect[2]
+    rot = cv2.getRotationMatrix2D(center, angle - 90, 1)
+    print(angle)
+    #img = cv2.warpAffine(img, rot, (rows, cols))
+    #
     box = cv2.boxPoints(rect)
     points = cv2.boxPoints(rect)
-
     #widthOfBox = sqrt(points[0][0])
 
-    # print out the box's 4 corners
-    print(points)
     box = np.int0(box)
     cv2.drawContours(objects, [box], 0, (0, 0, 255), 2)
 
+    bottom_left = points[1]
+    bottom_right = points[0]
+    top_left = points[2]
+    top_right = points[3]
+    width_in_pixels = math.sqrt((bottom_left[0]-bottom_right[1])**2 + (bottom_left[1]- bottom_right[1])**2)
+    print(bottom_left, bottom_right)
+    print(width_in_pixels)
 
     # bottom right: points[0]
     cv2.circle(objects,(points[0][0],points[0][1]),20,(255,0,0),thickness=1, lineType=8, shift=0)
@@ -89,9 +128,12 @@ while test:
     cv2.circle(objects, (points[1][0], points[1][1]), 20, (255, 0, 0), thickness=1, lineType=8, shift=0)
     # top left: points[2]
     cv2.circle(objects, (points[2][0], points[2][1]), 20, (255, 0, 0), thickness=1, lineType=8, shift=0)
-
     #top right: points[3]
     cv2.circle(objects, (points[3][0], points[3][1]), 20, (255, 0, 0), thickness=1, lineType=8, shift=0)
+
+
+
+
      #corners = cv2.goodFeaturesToTrack(rec,4,0.01,10)
 
     #corners = np.int0(corners)
@@ -99,14 +141,12 @@ while test:
     #   x,y = corner.ravel()
     #   cv2.circle(thresholded_image,(x,y),90,30,-1)
 
-     #   givenKey = cv2.waitKey(0)
+    givenKey = cv2.waitKey(10)
      #   if givenKey == ord('x'):
      #       break
 
     cv2.imshow("Image",thresholded_image)
     cv2.imshow("Objects",objects)
-
-    cv2.waitKey(0)
 
     #cv2.imshow("Thresholded image",thresholded_image)
 cap.release()
