@@ -17,12 +17,13 @@ def connectionListener(connected, info):
         notified[0] = True
         cond.notify()
 
-def distValueChanged(table,key, value, isNew):
-    print("valueChanged: key: '%s'; value: %s; isNew: %s" % (key, value, isNew))
-
+# Initialize NetworkTables and add a listener for until the connection has been established
 NetworkTables.initialize(server='10.52.88.10')
 NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
     visionTable1 = NetworkTables.getTable("visionData1")
+
+def setTableNumber(table,key,value):
+    table.putNumber(key, value)    
 
 # as long as the Jetson has not connected, wait for a connection
 with cond:
@@ -58,6 +59,12 @@ hue_range = [100,120]
 saturation_range = [60,80]
 value_range = [120,180]
 
+# Wait this long (in milliseconds) between iterations of the video stream.
+wait_time = 50
+
+index = -1
+thickness = 4
+color = (255, 0, 255)
 
 # ignore any detected object with a perimeter less than this.
 perimeter_threshold = 40
@@ -162,9 +169,6 @@ while test:
     # by using cv2.RETR_EXTERNAL, we only take the top-level contours; no contours inside of contours, etc.
     contours, hierarchy = cv2.findContours(thresholded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    index = -1
-    thickness = 4
-    color = (255, 0, 255)
     # create an empty array (array of 0s) to draw the contours onto later.
     # An image in computer vision is just a 2D array with 3 channels: Think of a cartesian grid, but
     # with 3 values inside each point (for the pixel's colour)
@@ -252,9 +256,9 @@ while test:
 
 
     # Wait 50 milliseconds between iterations.
-    givenKey = cv2.waitKey(50)
+    given_key = cv2.waitKey(wait_time)
     # Break ifg
-    if givenKey == ord('x'):
+    if given_key == ord('x'):
         break
 
     # show images
