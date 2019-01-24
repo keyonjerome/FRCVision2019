@@ -17,15 +17,19 @@ def connectionListener(connected, info):
         notified[0] = True
         cond.notify()
 
+def distValueChanged(table,key, value, isNew):
+    print("valueChanged: key: '%s'; value: %s; isNew: %s" % (key, value, isNew))
+
 NetworkTables.initialize(server='10.52.88.10')
 NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
+    visionTable1 = NetworkTables.getTable("visionData1")
 
 # as long as the Jetson has not connected, wait for a connection
 with cond:
     print("Waiting")
     if not notified[0]:
         cond.wait()
-# At this point, the jetson has connected.
+# At this point, the Jetson has connected.
 print("Connected!")
 '''
 
@@ -45,8 +49,18 @@ np.set_printoptions(threshold=np.inf)
 hue_range = [66,76]
 saturation_range = [202,255]
 value_range = [213,255]
+# chem class values
+hue_range = [76,135]
+saturation_range = [5,77]
+value_range = [149,55]
+# ics3u room 161 values, webcam
+hue_range = [100,120]
+saturation_range = [60,80]
+value_range = [120,180]
+
+
 # ignore any detected object with a perimeter less than this.
-perimeter_threshold = 100
+perimeter_threshold = 40
 
 # calculated with 30 cm data using F = (P x D) / W
 # focal length of the Lifecam 3000
@@ -89,7 +103,9 @@ def drawCorners(points):
     cv2.circle(objects, (points[3][0], points[3][1]), 20, (255, 0, 0), thickness=1, lineType=8, shift=0)
 
 def getDistanceToCamera(minAreaRect,knownWidth, knownFocal, widthPixels):
-    distance = (knownWidth*knownFocal)/widthPixels
+    distance = 0
+    if widthPixels > 0:
+        distance = (knownWidth*knownFocal)/widthPixels
     return distance
 # boolean logic to check if the detected object is the retroreflective tape.
 def checkIfFound(check_perimeter, check_area, check_angle,check_height,check_width,):
@@ -218,7 +234,7 @@ while test:
             print("Bottom left and top left (used to calc height): ", bottom_left, top_left)
             print("Width: ", width_in_pixels)
             print("Height: ", height_in_pixels)
-            print("Area: ", area)
+            print("Area:", area)
             print("Angle:", angle)
             print("Perimeter:",perimeter)
             print("All four corners: ")
@@ -231,17 +247,21 @@ while test:
             drawCorners(points)
             checkIfFound(perimeter,area,angle,height_in_pixels,width_in_pixels)
             print("Distance:",getDistanceToCamera(rect,width_of_tape,focal_length,width_in_pixels))
+            print("Image center:", thresholded_image.shape[1]/2, thresholded_image.shape[0]/2)
             print("\n")
 
-    # Wait 10 seconds between iterations.
-    givenKey = cv2.waitKey(10)
-    # Break if
+
+    # Wait 50 milliseconds between iterations.
+    givenKey = cv2.waitKey(50)
+    # Break ifg
     if givenKey == ord('x'):
         break
 
-    cv2.imshow("Image", thresholded_image)
+    # show images
+    cv2.imshow("Thresholded", thresholded_image)
     cv2.imshow("Objects", objects)
+    cv2.imshow("Original", imageResized)
 
-    # cv2.imshow("Thresholded image",thresholded_image)
+# release the camera input and end the program, destroying all windows
 cap.release()
 cv2.destroyAllWindows()
