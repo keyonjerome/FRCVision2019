@@ -75,10 +75,10 @@ perimeter_threshold = 35
 
 # calculated with 30 cm data using F = (P x D) / H
 # focal length of the Lifecam 3000
-focal_length = 323.937008
+focal_length = 327.745
 
 # height of the tape in centimetres
-height_of_tape = 13.97
+height_of_tape = 15
 # The BGR (RGB but backwards because OpenCV handles it that way) colorspace is not good for isolating based on color.
 # This is because the color is a combination of three different slots: blue, green, and red.
 # The HSV colorspace refers to hue, saturation, and value. Hue describes the actual colour of the pixel.
@@ -113,10 +113,10 @@ def drawCorners(points):
     # top right: points[3]
     cv2.circle(objects, (points[3][0], points[3][1]), 20, (255, 0, 0), thickness=1, lineType=8, shift=0)
 
-def getDistanceToCamera(minAreaRect,knownHeight, knownFocal, widthPixels):
+def getDistanceToCamera(minAreaRect,knownHeight, knownFocal, heightPixels):
     distance = 0
-    if widthPixels > 0:
-        distance = (knownHeight*knownFocal)/widthPixels
+    if heightPixels > 0:
+        distance = (knownHeight*knownFocal)/heightPixels
     return distance
 # boolean logic to check if the detected object is the retroreflective tape.
 def checkIfFound(check_perimeter, check_area, check_angle,check_height,check_width):
@@ -233,6 +233,14 @@ while test:
             # distance = sqrt((x1-x2)^2 + (y1-y2)^2)
             width_in_pixels = math.sqrt((bottom_left[0] - bottom_right[0]) ** 2 + (bottom_left[1] - bottom_right[1]) ** 2)
             height_in_pixels = math.sqrt((bottom_left[0]-top_left[0])**2 + (bottom_left[1]-top_left[1])**2)
+            largest_y = 0
+            smallest_y = 100000
+            for i in points:
+                if i[1] > largest_y:
+                    largest_y = i[1]
+                if i[1] < smallest_y:
+                    smallest_y = i[1]
+            total_vertical_height = largest_y - smallest_y
 
             # Depending on whether the rectangle is being laid flat (imagine the x-axis) vs. being laid out upwards (y-axis),
             # OpenCV will switch between width and height as it'll start counting from a different corner.
@@ -252,6 +260,7 @@ while test:
             print("Bottom right:",bottom_right)
             print("Top left:",top_left)
             print("Top right:",top_right)
+            print("Total vertical height: ", total_vertical_height)
 
             # draw the corners of the rectangle and check if it's the field's vision target
             drawCorners(points)
@@ -259,9 +268,10 @@ while test:
             if checkIfFound(perimeter,area,angle,height_in_pixels,width_in_pixels):
                 fieldTapes.append(rect)
 
-            print("Distance:",getDistanceToCamera(rect,height_of_tape,focal_length,height_in_pixels))
+            print("Distance:",getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height))
             print("Image center:", thresholded_image.shape[1]/2, thresholded_image.shape[0]/2)
             print("\n")
+            #cv2.putText(objects, ("Distance:" + getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height)) ), (top_left[0],top_left[1]), cv2.FONT_HERSHEY_COMPLEX, 2, 255)
 
     print(len(fieldTapes))
 
