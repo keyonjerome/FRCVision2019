@@ -58,6 +58,10 @@ value_range = [149,55]
 hue_range = [100,120]
 saturation_range = [60,80]
 value_range = [120,180]
+# test setup values, no green light
+hue_range = [39,99]
+saturation_range = [0,41]
+value_range = [233,255]
 
 # Wait this long (in milliseconds) between iterations of the video stream.
 wait_time = 50
@@ -67,7 +71,7 @@ thickness = 4
 color = (255, 0, 255)
 
 # ignore any detected object with a perimeter less than this.
-perimeter_threshold = 40
+perimeter_threshold = 35
 
 # calculated with 30 cm data using F = (P x D) / W
 # focal length of the Lifecam 3000
@@ -115,23 +119,29 @@ def getDistanceToCamera(minAreaRect,knownWidth, knownFocal, widthPixels):
         distance = (knownWidth*knownFocal)/widthPixels
     return distance
 # boolean logic to check if the detected object is the retroreflective tape.
-def checkIfFound(check_perimeter, check_area, check_angle,check_height,check_width,):
+def checkIfFound(check_perimeter, check_area, check_angle,check_height,check_width):
     #print("Perimeter:", check_perimeter,"\nArea:", check_area,"\nAngle:", check_angle)
     #print("Width:",check_width, "\nHeight:",check_height)
     # avoid division by zero
     if check_width > 0 and check_height > 0:
-    #    print(check_height/check_width)
+    #
         # find the ratio between height and width. As the rectangle is 5 by 2 inches, this should always be 2.5
         # But use this range to allow for inconsistency.
         # For the angles of the rect, it should be -78 and -12. This makes sense because OpenCV thinks of the box as on
         # a cartesian grid, turning counterclockwise. Why are both negative? Because the points OpenCV thinks is the
         # top left changes depending on the orientation (and therefore the angle!) of the rectangle.
         # For example, it might assign points[0] as the top left when really it should be points[2] how we see it.
-        if (2.0 < check_height/check_width < 3) and (-16 < angle < -8 or 8 < angle < 16 ):
-     #       print("FOUND!")
-            return True
-        else:
-            return False
+        if 2 < check_height/check_width < 3 or 2 < check_width/check_height < 3 :
+            # the angle for the vision tapes is 14.5 degrees
+            if -20 < angle < -4 or 4 < angle < 20:
+                print("FOUND, RIGHT!")
+                return True
+            elif -70 > angle > -90:
+                print("FOUND, LEFT!")
+                return True
+
+        return False
+
 # define the video camera (port 0)
 cap = cv2.VideoCapture(0)
 
@@ -178,6 +188,7 @@ while test:
     # image.shape[0] is the width of the image
     objects = np.zeros([thresholded_image.shape[0], thresholded_image.shape[1], 3], 'uint8')
     # loop through every object with contours
+    fieldTapes = []
     for c in contours:
         # calculate the area of the object
         area = cv2.contourArea(c)
@@ -249,11 +260,15 @@ while test:
 
             # draw the corners of the rectangle and check if it's the field's vision target
             drawCorners(points)
-            checkIfFound(perimeter,area,angle,height_in_pixels,width_in_pixels)
+            # if the rectangle is found, then add it to a list of the field tapes so we can compare the two field tapes later
+            if checkIfFound(perimeter,area,angle,height_in_pixels,width_in_pixels):
+                fieldTapes.append(rect)
+
             print("Distance:",getDistanceToCamera(rect,width_of_tape,focal_length,width_in_pixels))
             print("Image center:", thresholded_image.shape[1]/2, thresholded_image.shape[0]/2)
             print("\n")
 
+    print(len(fieldTapes))
 
     # Wait 50 milliseconds between iterations.
     given_key = cv2.waitKey(wait_time)
