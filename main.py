@@ -73,12 +73,12 @@ color = (255, 0, 255)
 # ignore any detected object with a perimeter less than this.
 perimeter_threshold = 35
 
-# calculated with 30 cm data using F = (P x D) / W
+# calculated with 30 cm data using F = (P x D) / H
 # focal length of the Lifecam 3000
-focal_length = 360.4782502
-# width of the tape in centimetres
-width_of_tape = 12.7
+focal_length = 323.937008
 
+# height of the tape in centimetres
+height_of_tape = 13.97
 # The BGR (RGB but backwards because OpenCV handles it that way) colorspace is not good for isolating based on color.
 # This is because the color is a combination of three different slots: blue, green, and red.
 # The HSV colorspace refers to hue, saturation, and value. Hue describes the actual colour of the pixel.
@@ -113,10 +113,10 @@ def drawCorners(points):
     # top right: points[3]
     cv2.circle(objects, (points[3][0], points[3][1]), 20, (255, 0, 0), thickness=1, lineType=8, shift=0)
 
-def getDistanceToCamera(minAreaRect,knownWidth, knownFocal, widthPixels):
+def getDistanceToCamera(minAreaRect,knownHeight, knownFocal, widthPixels):
     distance = 0
     if widthPixels > 0:
-        distance = (knownWidth*knownFocal)/widthPixels
+        distance = (knownHeight*knownFocal)/widthPixels
     return distance
 # boolean logic to check if the detected object is the retroreflective tape.
 def checkIfFound(check_perimeter, check_area, check_angle,check_height,check_width):
@@ -238,11 +238,6 @@ while test:
             # OpenCV will switch between width and height as it'll start counting from a different corner.
             # If the angle given by OpenCV is negative, then the rectangle is laid out flat, and width will be calculated as if it's height.
             # Switch the two if this happens!
-            if angle < 0:
-                switch = height_in_pixels
-                height_in_pixels = switch
-                height_in_pixels = width_in_pixels
-                width_in_pixels = switch
 
             # print out data
             print("Bottom left and bottom right (used to calc width): ", bottom_left, bottom_right)
@@ -264,7 +259,7 @@ while test:
             if checkIfFound(perimeter,area,angle,height_in_pixels,width_in_pixels):
                 fieldTapes.append(rect)
 
-            print("Distance:",getDistanceToCamera(rect,width_of_tape,focal_length,width_in_pixels))
+            print("Distance:",getDistanceToCamera(rect,height_of_tape,focal_length,height_in_pixels))
             print("Image center:", thresholded_image.shape[1]/2, thresholded_image.shape[0]/2)
             print("\n")
 
