@@ -177,7 +177,7 @@ while test:
     # For example, contours[0] could be the outsides of a rectangle, while contours[1] could be a circle...
     # The x and y co-ordinates of every point on the contours is given as well.
     # by using cv2.RETR_EXTERNAL, we only take the top-level contours; no contours inside of contours, etc.
-    contours, hierarchy = cv2.findContours(thresholded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    ret, contours, hierarchy = cv2.findContours(thresholded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # create an empty array (array of 0s) to draw the contours onto later.
     # An image in computer vision is just a 2D array with 3 channels: Think of a cartesian grid, but
