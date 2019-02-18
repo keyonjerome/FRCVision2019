@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 import threading
 from networktables import NetworkTables
+import math
 
 # Robot networking code, makes program wait until network connection is confirmed to continue
 '''
@@ -18,7 +19,7 @@ def connectionListener(connected, info):
         cond.notify()
 
 # Initialize NetworkTables and add a listener for until the connection has been established
-NetworkTables.initialize(server='10.52.88.10')
+NetworkTables.initialize(server='10.52.88.2')
 NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
     visionTable1 = NetworkTables.getTable("visionData1")
 
@@ -50,18 +51,32 @@ np.set_printoptions(threshold=np.inf)
 hue_range = [66,76]
 saturation_range = [202,255]
 value_range = [213,255]
+# 23.5 inches
+# 24 inches = 60.96 cm
 # chem class values
-hue_range = [76,135]
-saturation_range = [5,77]
-value_range = [149,55]
+angleToTape = 0
+#hue_range = [76,135]
+#saturation_range = [5,77]
+#value_range = [149,55]
 # ics3u room 161 values, webcam
-hue_range = [100,120]
-saturation_range = [60,80]
-value_range = [120,180]
+#hue_range = [100,120]
+#saturation_range = [60,80]
+#value_range = [120,180]
 # test setup values, no green light
-hue_range = [39,99]
-saturation_range = [0,41]
-value_range = [233,255]
+#hue_range = [39,99]
+#saturation_range = [0,41]
+#value_range = [233,255]
+hue_range = [43,49]
+saturation_range = [0,9]
+value_range = [244,255]
+
+hue_range = [0,125]
+saturation_range = [0,10]
+value_range = [227,255]
+
+# distance between tapes constant
+distanceBetweenTapes = 25.239
+
 
 # Wait this long (in milliseconds) between iterations of the video stream.
 wait_time = 50
@@ -70,11 +85,15 @@ index = -1
 thickness = 4
 color = (255, 0, 255)
 
+# angle per pixel
+anglePerPixel = math.sqrt(1920**2 + 1080**2)
+
 # ignore any detected object with a perimeter less than this.
 perimeter_threshold = 35
 
 # calculated with 30 cm data using F = (P x D) / H
 # focal length of the Lifecam 3000
+# F  = (75.9 x 60.96)/ 14.1
 focal_length = 327.745
 
 # height of the tape in centimetres
@@ -114,10 +133,20 @@ def drawCorners(points):
     cv2.circle(objects, (points[3][0], points[3][1]), 20, (255, 0, 0), thickness=1, lineType=8, shift=0)
 
 def getDistanceToCamera(minAreaRect,knownHeight, knownFocal, heightPixels):
-    distance = 0
+    distance = -1
     if heightPixels > 0:
         distance = (knownHeight*knownFocal)/heightPixels
     return distance
+
+def getAngleToTape(distances):
+    for i in range(len(distances)):
+        print("Distance",i,":",distances[i])
+
+    angle = math.acos((distances[0]**2 + distances[1]**2 - distanceBetweenTapes**2)/(2*distances[0]*distances[1]))
+    if angle > 0:
+        return angle
+    return -1
+
 # boolean logic to check if the detected object is the retroreflective tape.
 def checkIfFound(check_perimeter, check_area, check_angle,check_height,check_width):
     #print("Perimeter:", check_perimeter,"\nArea:", check_area,"\nAngle:", check_angle)
@@ -143,7 +172,7 @@ def checkIfFound(check_perimeter, check_area, check_angle,check_height,check_wid
         return False
 
 # define the video camera (port 0)
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 # "test" and other boolean logic is only here to quickly switch between taking in a single image vs.
 # parsing an entire video feed.
@@ -189,6 +218,9 @@ while test:
     objects = np.zeros([thresholded_image.shape[0], thresholded_image.shape[1], 3], 'uint8')
     # loop through every object with contours
     fieldTapes = []
+    # save the distances across each iteration, 0 and 1
+    distancesToTape = []
+    # save the angle to the tape, calculated via cosine law
     for c in contours:
         # calculate the area of the object
         area = cv2.contourArea(c)
@@ -268,7 +300,15 @@ while test:
             if checkIfFound(perimeter,area,angle,height_in_pixels,width_in_pixels):
                 fieldTapes.append(rect)
 
+            distancesToTape.append(getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height))
+
             print("Distance:",getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height))
+            if len(distancesToTape) > 1:
+                print(distancesToTape[0])
+                print(distancesToTape[1])
+            if len(distancesToTape) >= 2:
+                angleToTape = getAngleToTape(distancesToTape)
+            print("Angle to tape:", angleToTape)
             print("Image center:", thresholded_image.shape[1]/2, thresholded_image.shape[0]/2)
             print("\n")
             #cv2.putText(objects, ("Distance:" + getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height)) ), (top_left[0],top_left[1]), cv2.FONT_HERSHEY_COMPLEX, 2, 255)
@@ -284,7 +324,7 @@ while test:
     # show images
     cv2.imshow("Thresholded", thresholded_image)
     cv2.imshow("Objects", objects)
-    cv2.imshow("Original", imageResized)
+    #cv2.imshow("Original", imageResized)
 
 # release the camera input and end the program, destroying all windows
 cap.release()
