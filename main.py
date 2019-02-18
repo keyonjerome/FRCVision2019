@@ -7,7 +7,6 @@ from networktables import NetworkTables
 import math
 
 # Robot networking code, makes program wait until network connection is confirmed to continue
-'''
 cond = threading.Condition()
 notified = [False]
 
@@ -19,9 +18,9 @@ def connectionListener(connected, info):
         cond.notify()
 
 # Initialize NetworkTables and add a listener for until the connection has been established
-NetworkTables.initialize(server='10.52.88.2')
+NetworkTables.initialize(server='10.52.88.10')
 NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
-    visionTable1 = NetworkTables.getTable("visionData1")
+    visionTable1 = NetworkTables.getTable("SmartDashboard")
 
 def setTableNumber(table,key,value):
     table.putNumber(key, value)    
@@ -33,7 +32,7 @@ with cond:
         cond.wait()
 # At this point, the Jetson has connected.
 print("Connected!")
-'''
+table.putNumber("YES!",-20)
 
 # print out every item in an array, instead of using an ellipsis to shorten it.
 np.set_printoptions(threshold=np.inf)
