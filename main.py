@@ -18,7 +18,7 @@ def connectionListener(connected, info):
         cond.notify()
 
 # Initialize NetworkTables and add a listener for until the connection has been established
-NetworkTables.initialize(server='10.52.88.10')
+NetworkTables.initialize(server='10.52.88.2')
 NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
 visionTable = NetworkTables.getTable("SmartDashboard")
 
