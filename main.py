@@ -20,7 +20,7 @@ def connectionListener(connected, info):
 # Initialize NetworkTables and add a listener for until the connection has been established
 NetworkTables.initialize(server='10.52.88.10')
 NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
-    visionTable1 = NetworkTables.getTable("SmartDashboard")
+visionTable = NetworkTables.getTable("SmartDashboard")
 
 def setTableNumber(table,key,value):
     table.putNumber(key, value)    
@@ -32,7 +32,7 @@ with cond:
         cond.wait()
 # At this point, the Jetson has connected.
 print("Connected!")
-table.putNumber("YES!",-20)
+visionTable.putNumber("YES!",-20)
 
 # print out every item in an array, instead of using an ellipsis to shorten it.
 np.set_printoptions(threshold=np.inf)
