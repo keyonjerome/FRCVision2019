@@ -141,7 +141,7 @@ def getAngleToTape(distances):
     for i in range(len(distances)):
         print("Distance",i,":",distances[i])
 
-    angle = math.acos((distances[0]**2 + distances[1]**2 - distanceBetweenTapes**2)/(2*distances[0]*distances[1]))
+    angle = math.acos((-distances[0]**2 - distances[1]**2 + distanceBetweenTapes**2)/(-2*distances[0]*distances[1]))
     if angle > 0:
         return angle
     return -1
