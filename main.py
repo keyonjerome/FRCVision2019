@@ -3,6 +3,7 @@ import math
 import cv2
 import numpy as np
 import threading
+import time
 from networktables import NetworkTables
 import math
 
@@ -325,6 +326,7 @@ while test:
     if given_key == ord('x'):
         break
 
+    time.sleep(200)
     # show images
     cv2.imshow("Thresholded", thresholded_image)
     cv2.imshow("Objects", objects)
