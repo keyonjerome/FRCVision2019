@@ -26,10 +26,11 @@ def setTableNumber(table,key,value):
     table.putNumber(key, value)    
 
 # as long as the Jetson has not connected, wait for a connection
-with cond:
+'''with cond:
     print("Waiting")
     if not notified[0]:
         cond.wait()
+'''
 # At this point, the Jetson has connected.
 print("Connected!")
 visionTable.putNumber("YES!",-20)
@@ -140,8 +141,9 @@ def getDistanceToCamera(minAreaRect,knownHeight, knownFocal, heightPixels):
 def getAngleToTape(distances):
     for i in range(len(distances)):
         print("Distance",i,":",distances[i])
-
-    angle = math.acos((-distances[0]**2 - distances[1]**2 + distanceBetweenTapes**2)/(-2*distances[0]*distances[1]))
+    angle = 0
+    if 0 not in distances:
+        angle = math.acos((-distances[0]**2 - distances[1]**2 + distanceBetweenTapes**2)/(-2*distances[0]*distances[1]))
     if angle > 0:
         return angle
     return -1
