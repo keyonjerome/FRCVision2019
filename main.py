@@ -6,6 +6,7 @@ import threading
 import time
 from networktables import NetworkTables
 import math
+import json
 
 # Robot networking code, makes program wait until network connection is confirmed to continue
 cond = threading.Condition()
@@ -177,7 +178,7 @@ def checkIfFound(check_perimeter, check_area, check_angle,check_height,check_wid
         return False
 
 # define the video camera (port 0)
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 
 # "test" and other boolean logic is only here to quickly switch between taking in a single image vs.
 # parsing an entire video feed.
@@ -211,7 +212,7 @@ while test:
     # For example, contours[0] could be the outsides of a rectangle, while contours[1] could be a circle...
     # The x and y co-ordinates of every point on the contours is given as well.
     # by using cv2.RETR_EXTERNAL, we only take the top-level contours; no contours inside of contours, etc.
-    ret, contours, hierarchy = cv2.findContours(thresholded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv2.findContours(thresholded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # create an empty array (array of 0s) to draw the contours onto later.
     # An image in computer vision is just a 2D array with 3 channels: Think of a cartesian grid, but
@@ -256,6 +257,18 @@ while test:
             # this converts the given rect to the main 4 corners of the rect
             box = cv2.boxPoints(rect)
             points = cv2.boxPoints(rect)
+
+            with open('output.json') as json_file:
+                data = json.load(json_file)
+                # print(data)
+                right_tape_world_coords = [[0,0,0],[5,1.1,0],[1.9,14.8,0],[-2.8,13.6,0],]
+                right_tape_world_coordsUMat = cv2.UMat(np.array([[0,0,0],[5,1.1,0],[1.9,14.8,0],[-2.8,13.6,0]]))
+                camera_matrix = data['camera_matrix']
+                dist = data['distortion']
+                print(camera_matrix)
+                print(dist)
+                retval, rvec, tvec = cv2.solvePnP(right_tape_world_coordsUMat,points,cv2.UMat(np.array((camera_matrix)), dist)
+                    
             #  modify the data type of the array, convert to integers
             box = np.int0(box)
             # draw the contours of the box
@@ -315,7 +328,7 @@ while test:
                 angleToTape = getAngleToTape(distancesToTape)
             print("Angle to tape:", angleToTape)
             print("Image center:", thresholded_image.shape[1]/2, thresholded_image.shape[0]/2)
-            print("\n")
+            # print("\n")
             #cv2.putText(objects, ("Distance:" + getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height)) ), (top_left[0],top_left[1]), cv2.FONT_HERSHEY_COMPLEX, 2, 255)
 
     print(len(fieldTapes))
@@ -326,7 +339,7 @@ while test:
     if given_key == ord('x'):
         break
 
-    time.sleep(200)
+    # time.sleep(200)
     # show images
     cv2.imshow("Thresholded", thresholded_image)
     cv2.imshow("Objects", objects)
