@@ -271,10 +271,8 @@ with open('output.json') as json_file:
 
                 print('Camera matrix: ',camera_matrix)
                 print('Distortion matrix:',dist)
-
-                camera_matrix = cv2.UMat(np.array(camera_matrix))
-                dist = cv2.UMat(np.array(dist))
-                retval, rvec, tvec = cv2.solvePnP(right_tape_world_coordsUMat,points,camera_matrix,dist)
+                
+                retval, rvec, tvec = cv2.solvePnP(right_tape_world_coordsUMat,points,cv2.UMat(np.array(camera_matrix)), cv2.UMat(np.array(dist)))
 
                 print("RETVAL,RVEC,TVEC:")
                 print(retval)
