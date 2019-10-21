@@ -75,13 +75,16 @@ value_range = [244,255]
 hue_range = [0,125]
 saturation_range = [0,10]
 value_range = [227,255]
+hue_range = [0,1]
+saturation_range = [0,1]
+value_range = [245,255]
 
 # distance between tapes constant
 distanceBetweenTapes = 25.239
 
 
 # Wait this long (in milliseconds) between iterations of the video stream.
-wait_time = 50
+wait_time = 2000
 
 index = -1
 thickness = 4
@@ -178,97 +181,107 @@ def checkIfFound(check_perimeter, check_area, check_angle,check_height,check_wid
         return False
 
 # define the video camera (port 0)
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 
 # "test" and other boolean logic is only here to quickly switch between taking in a single image vs.
 # parsing an entire video feed.
 test = True
-while test:
-    # test = False
-    # take a frame from the video capture
-    ret, bgr_img = cap.read()
-    # read in the image
-    # bgr_img = cv2.imread('testimages/retroreflectivetapegreen.jpg')
+with open('output.json') as json_file:
+    data = json.load(json_file)
+    # print(data)
+    right_tape_world_coords = [[0,0,0],[5,1.1,0],[1.9,14.8,0],[-2.8,13.6,0],]
+    right_tape_world_coordsUMat = cv2.UMat(np.array([[0,0,0],[5,1.1,0],[1.9,14.8,0],[-2.8,13.6,0]]))
+    camera_matrix = data['camera_matrix']
+    dist = data['distortion']
+    while test:
+        # test = False
+        # take a frame from the video capture
+        ret, bgr_img = cap.read()
+        # read in the image
+        # bgr_img = cv2.imread('testimages/retroreflectivetapegreen.jpg')
 
-    # resize the image to half its original size
-    imageResized = cv2.resize(bgr_img, (0, 0), fx=0.5, fy=0.5)
+        # resize the image to half its original size
+        imageResized = cv2.resize(bgr_img, (0, 0), fx=0.5, fy=0.5)
 
-    # Gaussian blur the image, (191,191) refers to how much the image is being blurred on the X and Y axes.
-    blurred_image = cv2.GaussianBlur(imageResized, (191, 191), 1)
-    # cv2.imshow("BLURRED", blurred_image)
+        # Gaussian blur the image, (191,191) refers to how much the image is being blurred on the X and Y axes.
+        blurred_image = cv2.GaussianBlur(imageResized, (191, 191), 1)
+        # cv2.imshow("BLURRED", blurred_image)
 
-    # define the erosion kernel and erode the image
-    # eroding eliminates inconsistencies between pixels, like small flares or bits
-    # More iterations means a cleaner image, but takes a lot of processing power.
-    kernel = np.ones((5, 5), 'uint8')
-    erode = cv2.erode(blurred_image, kernel, iterations=3)
+        # define the erosion kernel and erode the image
+        # eroding eliminates inconsistencies between pixels, like small flares or bits
+        # More iterations means a cleaner image, but takes a lot of processing power.
+        kernel = np.ones((5, 5), 'uint8')
+        erode = cv2.erode(blurred_image, kernel, iterations=3)
 
-    # Run an HSV threshold on the image to isolate the retroreflective tape.
-    thresholded_image = hsv_threshold(blurred_image, hue_range, saturation_range, value_range)
-    # print(thresholded_image)
+        # Run an HSV threshold on the image to isolate the retroreflective tape.
+        thresholded_image = hsv_threshold(blurred_image, hue_range, saturation_range, value_range)
+        # print(thresholded_image)
 
-    # hierarchy refers to the tree of contours: whether a contour has contours inside it, etc.
-    # contours is an array of the outsides of any detected object.
-    # For example, contours[0] could be the outsides of a rectangle, while contours[1] could be a circle...
-    # The x and y co-ordinates of every point on the contours is given as well.
-    # by using cv2.RETR_EXTERNAL, we only take the top-level contours; no contours inside of contours, etc.
-    contours, hierarchy = cv2.findContours(thresholded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        # hierarchy refers to the tree of contours: whether a contour has contours inside it, etc.
+        # contours is an array of the outsides of any detected object.
+        # For example, contours[0] could be the outsides of a rectangle, while contours[1] could be a circle...
+        # The x and y co-ordinates of every point on the contours is given as well.
+        # by using cv2.RETR_EXTERNAL, we only take the top-level contours; no contours inside of contours, etc.
+        contours, hierarchy = cv2.findContours(thresholded_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # create an empty array (array of 0s) to draw the contours onto later.
-    # An image in computer vision is just a 2D array with 3 channels: Think of a cartesian grid, but
-    # with 3 values inside each point (for the pixel's colour)
-    # Ex: [0][0] would mean the top-left corner of the image, and when you reference image[0][0]:
-    # You get [blue,green,red], because image[0][0] is a pixel and [blue,green,red] are its values.
-    # image.shape[0] is the height of the image (how many pixels)
-    # image.shape[0] is the width of the image
-    objects = np.zeros([thresholded_image.shape[0], thresholded_image.shape[1], 3], 'uint8')
-    # loop through every object with contours
-    fieldTapes = []
-    # save the distances across each iteration, 0 and 1
-    distancesToTape = []
-    # save the angle to the tape, calculated via cosine law
-    for c in contours:
-        # calculate the area of the object
-        area = cv2.contourArea(c)
-        # calculate the perimeter of the object
-        perimeter = cv2.arcLength(c, True)
+        # create an empty array (array of 0s) to draw the contours onto later.
+        # An image in computer vision is just a 2D array with 3 channels: Think of a cartesian grid, but
+        # with 3 values inside each point (for the pixel's colour)
+        # Ex: [0][0] would mean the top-left corner of the image, and when you reference image[0][0]:
+        # You get [blue,green,red], because image[0][0] is a pixel and [blue,green,red] are its values.
+        # image.shape[0] is the height of the image (how many pixels)
+        # image.shape[0] is the width of the image
+        objects = np.zeros([thresholded_image.shape[0], thresholded_image.shape[1], 3], 'uint8')
+        # loop through every object with contours
+        fieldTapes = []
+        lastFieldTapes = 0
+        # save the distances across each iteration, 0 and 1
+        distancesToTape = []
+        # save the angle to the tape, calculated via cosine law
+        for c in contours:
+            # calculate the area of the object
+            area = cv2.contourArea(c)
+            # calculate the perimeter of the object
+            perimeter = cv2.arcLength(c, True)
 
-        if perimeter > perimeter_threshold:
-            cv2.drawContours(objects, [c], -1, color, 1)
-            # draw contours of the thresholded image one by one, do not do the inner fill of the image
-            M = cv2.moments(c)
+            if perimeter > perimeter_threshold:
+                cv2.drawContours(objects, [c], -1, color, 1)
+                # draw contours of the thresholded image one by one, do not do the inner fill of the image
+                M = cv2.moments(c)
 
-            # centroid: exact middle points
-            # cx = int(M['m10']/M['m00'])
-            # cy = int(M['m01']/M['m00'])
-            # cv2.circle(objects, (cx,cy), 4, (0,0,255),-1)
+                # centroid: exact middle points
+                # cx = int(M['m10']/M['m00'])
+                # cy = int(M['m01']/M['m00'])
+                # cv2.circle(objects, (cx,cy), 4, (0,0,255),-1)
 
-            # print("Area: {}, perimeter: {}".format(area,perimeter))
-            #print(contours)
-            rect = cv2.minAreaRect(c)
-            # get rectangle information
-            # https://stackoverflow.com/questions/36293335/using-bounding-rectangle-to-get-rotation-angle-not-working-opencv-python
-            center = rect[0]
-            angle = rect[2]
-            #rot = cv2.getRotationMatrix2D(center, angle - 90, 1)
-            #print("Angle: ",angle)
-            # img = cv2.warpAffine(img, rot, (rows, cols))
+                # print("Area: {}, perimeter: {}".format(area,perimeter))
+                #print(contours)
+                rect = cv2.minAreaRect(c)
+                # get rectangle information
+                # https://stackoverflow.com/questions/36293335/using-bounding-rectangle-to-get-rotation-angle-not-working-opencv-python
+                center = rect[0]
+                angle = rect[2]
+                #rot = cv2.getRotationMatrix2D(center, angle - 90, 1)
+                #print("Angle: ",angle)
+                # img = cv2.warpAffine(img, rot, (rows, cols))
 
-            # this converts the given rect to the main 4 corners of the rect
-            box = cv2.boxPoints(rect)
-            points = cv2.boxPoints(rect)
+                # this converts the given rect to the main 4 corners of the rect
+                box = cv2.boxPoints(rect)
+                points = cv2.boxPoints(rect)
 
-            with open('output.json') as json_file:
-                data = json.load(json_file)
-                # print(data)
-                right_tape_world_coords = [[0,0,0],[5,1.1,0],[1.9,14.8,0],[-2.8,13.6,0],]
-                right_tape_world_coordsUMat = cv2.UMat(np.array([[0,0,0],[5,1.1,0],[1.9,14.8,0],[-2.8,13.6,0]]))
-                camera_matrix = data['camera_matrix']
-                dist = data['distortion']
                 print('Camera matrix: ',camera_matrix)
                 print('Distortion matrix:',dist)
-                retval, rvec, tvec = cv2.solvePnP(right_tape_world_coordsUMat,points,cv2.UMat(np.array(camera_matrix)), cv2.UMat(np.array(dist)))
-                        
+
+                camera_matrix = cv2.UMat(np.array(camera_matrix))
+                dist = cv2.UMat(np.array(dist))
+                retval, rvec, tvec = cv2.solvePnP(right_tape_world_coordsUMat,points,camera_matrix,dist)
+
+                print("RETVAL,RVEC,TVEC:")
+                print(retval)
+                print(rvec)
+                print(tvec) 
+                print()
+
                 #  modify the data type of the array, convert to integers
                 box = np.int0(box)
                 # draw the contours of the box
@@ -314,6 +327,17 @@ while test:
 
                 # draw the corners of the rectangle and check if it's the field's vision target
                 drawCorners(points)
+
+                # (nose_end_point2D, jacobian) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rvec, tvec, camera_matrix, dist)
+                
+                # # for p in image_points:
+                # #     cv2.circle(im, (int(p[0]), int(p[1])), 3, (0,0,255), -1)
+                
+                
+                # p1 = ( int(points[0][0]), int(points[0][1]))
+                # p2 = ( int(nose_end_point2D[0][0][0]), int(nose_end_point2D[0][0][1]))
+                
+                # cv2.line(objects, p1, p2, (255,0,0), 2)
                 # if the rectangle is found, then add it to a list of the field tapes so we can compare the two field tapes later
                 if checkIfFound(perimeter,area,angle,height_in_pixels,width_in_pixels):
                     fieldTapes.append(rect)
@@ -331,20 +355,23 @@ while test:
                 # print("\n")
                 #cv2.putText(objects, ("Distance:" + getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height)) ), (top_left[0],top_left[1]), cv2.FONT_HERSHEY_COMPLEX, 2, 255)
 
-        print('Number of tapes:',len(fieldTapes))
+            # To save from hundreds of printouts, only print out number of field tapes detected if it has changed.
+            if(len(fieldTapes) != lastFieldTapes):
+                lastFieldTapes = len(fieldTapes)
+                print('Number of tapes:',fieldTapes)
 
-        # Wait 50 milliseconds between iterations.
-        given_key = cv2.waitKey(wait_time)
-        # Break ifg
-        if given_key == ord('x'):
-            break
+            # Wait 50 milliseconds between iterations.
+            given_key = cv2.waitKey(wait_time)
+            # Break ifg
+            if given_key == ord('x'):
+                break
 
-        # time.sleep(200)
-        # show images
-        cv2.imshow("Thresholded", thresholded_image)
-        cv2.imshow("Objects", objects)
-        #cv2.imshow("Original", imageResized)
+            # time.sleep(200)
+            # show images
+            cv2.imshow("Thresholded", thresholded_image)
+            cv2.imshow("Objects", objects)
+            #cv2.imshow("Original", imageResized)
 
-# release the camera input and end the program, destroying all windows
-cap.release()
-cv2.destroyAllWindows()
+    # release the camera input and end the program, destroying all windows
+    cap.release()
+    cv2.destroyAllWindows()
