@@ -178,7 +178,7 @@ def checkIfFound(check_perimeter, check_area, check_angle,check_height,check_wid
         return False
 
 # define the video camera (port 0)
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(1)
 
 # "test" and other boolean logic is only here to quickly switch between taking in a single image vs.
 # parsing an entire video feed.
@@ -265,85 +265,85 @@ while test:
                 right_tape_world_coordsUMat = cv2.UMat(np.array([[0,0,0],[5,1.1,0],[1.9,14.8,0],[-2.8,13.6,0]]))
                 camera_matrix = data['camera_matrix']
                 dist = data['distortion']
-                print(camera_matrix)
-                print(dist)
-                retval, rvec, tvec = cv2.solvePnP(right_tape_world_coordsUMat,points,cv2.UMat(np.array((camera_matrix)), dist)
-                    
-            #  modify the data type of the array, convert to integers
-            box = np.int0(box)
-            # draw the contours of the box
-            cv2.drawContours(objects, [box], 0, (0, 0, 255), 2)
+                print('Camera matrix: ',camera_matrix)
+                print('Distortion matrix:',dist)
+                retval, rvec, tvec = cv2.solvePnP(right_tape_world_coordsUMat,points,cv2.UMat(np.array(camera_matrix)), cv2.UMat(np.array(dist)))
+                        
+                #  modify the data type of the array, convert to integers
+                box = np.int0(box)
+                # draw the contours of the box
+                cv2.drawContours(objects, [box], 0, (0, 0, 255), 2)
 
-            # define the 4 corners of the rectangle
-            bottom_left = points[1]
-            bottom_right = points[0]
-            top_left = points[2]
-            top_right = points[3]
-            # use cartesian grid math to figure out the width and height of the rectangles:
-            # distance = sqrt((x1-x2)^2 + (y1-y2)^2)
-            width_in_pixels = math.sqrt((bottom_left[0] - bottom_right[0]) ** 2 + (bottom_left[1] - bottom_right[1]) ** 2)
-            height_in_pixels = math.sqrt((bottom_left[0]-top_left[0])**2 + (bottom_left[1]-top_left[1])**2)
-            largest_y = 0
-            smallest_y = 100000
-            for i in points:
-                if i[1] > largest_y:
-                    largest_y = i[1]
-                if i[1] < smallest_y:
-                    smallest_y = i[1]
-            total_vertical_height = largest_y - smallest_y
+                # define the 4 corners of the rectangle
+                bottom_left = points[1]
+                bottom_right = points[0]
+                top_left = points[2]
+                top_right = points[3]
+                # use cartesian grid math to figure out the width and height of the rectangles:
+                # distance = sqrt((x1-x2)^2 + (y1-y2)^2)
+                width_in_pixels = math.sqrt((bottom_left[0] - bottom_right[0]) ** 2 + (bottom_left[1] - bottom_right[1]) ** 2)
+                height_in_pixels = math.sqrt((bottom_left[0]-top_left[0])**2 + (bottom_left[1]-top_left[1])**2)
+                largest_y = 0
+                smallest_y = 100000
+                for i in points:
+                    if i[1] > largest_y:
+                        largest_y = i[1]
+                    if i[1] < smallest_y:
+                        smallest_y = i[1]
+                total_vertical_height = largest_y - smallest_y
 
-            # Depending on whether the rectangle is being laid flat (imagine the x-axis) vs. being laid out upwards (y-axis),
-            # OpenCV will switch between width and height as it'll start counting from a different corner.
-            # If the angle given by OpenCV is negative, then the rectangle is laid out flat, and width will be calculated as if it's height.
-            # Switch the two if this happens!
+                # Depending on whether the rectangle is being laid flat (imagine the x-axis) vs. being laid out upwards (y-axis),
+                # OpenCV will switch between width and height as it'll start counting from a different corner.
+                # If the angle given by OpenCV is negative, then the rectangle is laid out flat, and width will be calculated as if it's height.
+                # Switch the two if this happens!
 
-            # print out data
-            print("Bottom left and bottom right (used to calc width): ", bottom_left, bottom_right)
-            print("Bottom left and top left (used to calc height): ", bottom_left, top_left)
-            print("Width: ", width_in_pixels)
-            print("Height: ", height_in_pixels)
-            print("Area:", area)
-            print("Angle:", angle)
-            print("Perimeter:",perimeter)
-            print("All four corners: ")
-            print("Bottom left:",bottom_left)
-            print("Bottom right:",bottom_right)
-            print("Top left:",top_left)
-            print("Top right:",top_right)
-            print("Total vertical height: ", total_vertical_height)
+                # print out data
+                print("Bottom left and bottom right (used to calc width): ", bottom_left, bottom_right)
+                print("Bottom left and top left (used to calc height): ", bottom_left, top_left)
+                print("Width: ", width_in_pixels)
+                print("Height: ", height_in_pixels)
+                print("Area:", area)
+                print("Angle:", angle)
+                print("Perimeter:",perimeter)
+                print("All four corners: ")
+                print("Bottom left:",bottom_left)
+                print("Bottom right:",bottom_right)
+                print("Top left:",top_left)
+                print("Top right:",top_right)
+                print("Total vertical height: ", total_vertical_height)
 
-            # draw the corners of the rectangle and check if it's the field's vision target
-            drawCorners(points)
-            # if the rectangle is found, then add it to a list of the field tapes so we can compare the two field tapes later
-            if checkIfFound(perimeter,area,angle,height_in_pixels,width_in_pixels):
-                fieldTapes.append(rect)
+                # draw the corners of the rectangle and check if it's the field's vision target
+                drawCorners(points)
+                # if the rectangle is found, then add it to a list of the field tapes so we can compare the two field tapes later
+                if checkIfFound(perimeter,area,angle,height_in_pixels,width_in_pixels):
+                    fieldTapes.append(rect)
 
-            distancesToTape.append(getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height))
+                distancesToTape.append(getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height))
 
-            print("Distance:",getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height))
-            if len(distancesToTape) > 1:
-                print(distancesToTape[0])
-                print(distancesToTape[1])
-            if len(distancesToTape) >= 2:
-                angleToTape = getAngleToTape(distancesToTape)
-            print("Angle to tape:", angleToTape)
-            print("Image center:", thresholded_image.shape[1]/2, thresholded_image.shape[0]/2)
-            # print("\n")
-            #cv2.putText(objects, ("Distance:" + getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height)) ), (top_left[0],top_left[1]), cv2.FONT_HERSHEY_COMPLEX, 2, 255)
+                print("Distance:",getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height))
+                if len(distancesToTape) > 1:
+                    print(distancesToTape[0])
+                    print(distancesToTape[1])
+                if len(distancesToTape) >= 2:
+                    angleToTape = getAngleToTape(distancesToTape)
+                print("Angle to tape:", angleToTape)
+                print("Image center:", thresholded_image.shape[1]/2, thresholded_image.shape[0]/2)
+                # print("\n")
+                #cv2.putText(objects, ("Distance:" + getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height)) ), (top_left[0],top_left[1]), cv2.FONT_HERSHEY_COMPLEX, 2, 255)
 
-    print(len(fieldTapes))
+        print('Number of tapes:',len(fieldTapes))
 
-    # Wait 50 milliseconds between iterations.
-    given_key = cv2.waitKey(wait_time)
-    # Break ifg
-    if given_key == ord('x'):
-        break
+        # Wait 50 milliseconds between iterations.
+        given_key = cv2.waitKey(wait_time)
+        # Break ifg
+        if given_key == ord('x'):
+            break
 
-    # time.sleep(200)
-    # show images
-    cv2.imshow("Thresholded", thresholded_image)
-    cv2.imshow("Objects", objects)
-    #cv2.imshow("Original", imageResized)
+        # time.sleep(200)
+        # show images
+        cv2.imshow("Thresholded", thresholded_image)
+        cv2.imshow("Objects", objects)
+        #cv2.imshow("Original", imageResized)
 
 # release the camera input and end the program, destroying all windows
 cap.release()
