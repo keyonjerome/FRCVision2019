@@ -25,7 +25,7 @@ def setTableNumber(table,key,value):
 def compute_output_values(self, rvec, tvec):
         '''Compute the necessary output distance and angles'''
 
-        x_r_w0 = numpy.matmul(RRTargetFinder2019.rot_robot, tvec) + RRTargetFinder2019.t_robot
+        x_r_w0 = np.matmul(RRTargetFinder2019.rot_robot, tvec) + RRTargetFinder2019.t_robot
         x = x_r_w0[0][0]
         z = x_r_w0[2][0]
 
@@ -39,7 +39,7 @@ def compute_output_values(self, rvec, tvec):
         rot_inv = rot.transpose()
 
         # location of Robot (0,0,0) in World coordinates
-        x_w_r0 = numpy.matmul(rot_inv, RRTargetFinder2019.camera_offset_rotated - tvec)
+        x_w_r0 = np.matmul(rot_inv, RRTargetFinder2019.camera_offset_rotated - tvec)
 
         angle2 = math.atan2(x_w_r0[0][0], x_w_r0[2][0])
 
