@@ -19,13 +19,37 @@ def connectionListener(connected, info):
         notified[0] = True
         cond.notify()
 
+def setTableNumber(table,key,value):
+    table.putNumber(key, value)  
+
+def compute_output_values(self, rvec, tvec):
+        '''Compute the necessary output distance and angles'''
+
+        x_r_w0 = numpy.matmul(RRTargetFinder2019.rot_robot, tvec) + RRTargetFinder2019.t_robot
+        x = x_r_w0[0][0]
+        z = x_r_w0[2][0]
+
+        # distance in the horizontal plane between robot center and target
+        distance = math.sqrt(x**2 + z**2)
+
+        # horizontal angle between robot center line and target
+        angle1 = math.atan2(x, z)
+
+        rot, _ = cv2.Rodrigues(rvec)
+        rot_inv = rot.transpose()
+
+        # location of Robot (0,0,0) in World coordinates
+        x_w_r0 = numpy.matmul(rot_inv, RRTargetFinder2019.camera_offset_rotated - tvec)
+
+        angle2 = math.atan2(x_w_r0[0][0], x_w_r0[2][0])
+
+        return distance, angle1, angle2
+
+
 # Initialize NetworkTables and add a listener for until the connection has been established
 NetworkTables.initialize(server='10.52.88.2')
 NetworkTables.addConnectionListener(connectionListener, immediateNotify=True)
 visionTable = NetworkTables.getTable("SmartDashboard")
-
-def setTableNumber(table,key,value):
-    table.putNumber(key, value)    
 
 # as long as the Jetson has not connected, wait for a connection
 '''with cond:
@@ -36,6 +60,7 @@ def setTableNumber(table,key,value):
 # At this point, the Jetson has connected.
 print("Connected!")
 visionTable.putNumber("YES!",-20)
+
 
 # print out every item in an array, instead of using an ellipsis to shorten it.
 np.set_printoptions(threshold=np.inf)
@@ -81,8 +106,6 @@ value_range = [245,255]
 
 # distance between tapes constant
 distanceBetweenTapes = 25.239
-
-
 # Wait this long (in milliseconds) between iterations of the video stream.
 wait_time = 2000
 
