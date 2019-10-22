@@ -302,7 +302,7 @@ with open('output.json') as json_file:
                 print(rvec.get())
                 print(tvec.get()) 
                 print()
-                d = math.sqrt(tx*tx + ty*ty + tz*tz)
+                # d = math.sqrt(tx*tx + ty*ty + tz*tz)
 
                 #  modify the data type of the array, convert to integers
                 box = np.int0(box)
