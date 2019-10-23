@@ -213,7 +213,31 @@ with open('output.json') as json_file:
     data = json.load(json_file)
     # print(data)
     right_tape_world_coords = [[0,0,0],[5,1.1,0],[1.9,14.8,0],[-2.8,13.6,0],]
-    right_tape_world_coordsUMat = cv2.UMat(np.array([[0,0,0],[5,1.1,0],[1.9,14.8,0],[-2.8,13.6,0]]))
+
+    right_tape_world_coords = [
+    # Right target
+    (3.938, 2.375, 0.0), # top left
+    (5.875, 2.875, 0.0), # top right
+    (7.313, -2.500, 0.0), # bottom left
+    (5.375, -2.938, 0.0), # bottom right
+    ]
+    # right_tape_world_coordsUMat = cv2.UMat(np.array([[0,0,0],[5,1.1,0],[1.9,14.8,0],[-2.8,13.6,0]]))
+    right_tape_world_coordsUMat = cv2.UMat(np.array(right_tape_world_coords))
+
+    all_tape_world_coords = [
+    # Left target
+    (-5.938, 2.938, 0.0), # top left
+    (-4.063, 2.375, 0.0), # top right
+    (-5.438, -2.938, 0.0), # bottom left
+    (-7.375, -2.500, 0.0), # bottom right
+
+    # Right target
+    (3.938, 2.375, 0.0), # top left
+    (5.875, 2.875, 0.0), # top right
+    (7.313, -2.500, 0.0), # bottom left
+    (5.375, -2.938, 0.0), # bottom right
+    ]
+    all_tape_world_coordsUMat = cv2.UMat(np.array(all_tape_world_coords))    
     camera_matrix = data['camera_matrix']
     dist = data['distortion']
     while test:
@@ -291,17 +315,6 @@ with open('output.json') as json_file:
                 # this converts the given rect to the main 4 corners of the rect
                 box = cv2.boxPoints(rect)
                 points = cv2.boxPoints(rect)
-
-                print('Camera matrix: ',camera_matrix)
-                print('Distortion matrix:',dist)
-                
-                retval, rvec, tvec = cv2.solvePnP(right_tape_world_coordsUMat,points,cv2.UMat(np.array(camera_matrix)), cv2.UMat(np.array(dist)))
-
-                print("RETVAL,RVEC,TVEC:")
-                print(retval)
-                print(rvec.get())
-                print(tvec.get()) 
-                print()
                 # d = math.sqrt(tx*tx + ty*ty + tz*tz)
 
                 #  modify the data type of the array, convert to integers
@@ -333,22 +346,19 @@ with open('output.json') as json_file:
                 # Switch the two if this happens!
 
                 # print out data
-                print("Bottom left and bottom right (used to calc width): ", bottom_left, bottom_right)
-                print("Bottom left and top left (used to calc height): ", bottom_left, top_left)
-                print("Width: ", width_in_pixels)
-                print("Height: ", height_in_pixels)
-                print("Area:", area)
-                print("Angle:", angle)
-                print("Perimeter:",perimeter)
-                print("All four corners: ")
-                print("Bottom left:",bottom_left)
-                print("Bottom right:",bottom_right)
-                print("Top left:",top_left)
-                print("Top right:",top_right)
-                print("Total vertical height: ", total_vertical_height)
-
-                # draw the corners of the rectangle and check if it's the field's vision target
-                drawCorners(points)
+                # print("Bottom left and bottom right (used to calc width): ", bottom_left, bottom_right)
+                # print("Bottom left and top left (used to calc height): ", bottom_left, top_left)
+                # print("Width: ", width_in_pixels)
+                # print("Height: ", height_in_pixels)
+                # print("Area:", area)
+                # print("Angle:", angle)
+                # print("Perimeter:",perimeter)
+                # print("All four corners: ")
+                # print("Bottom left:",bottom_left)
+                # print("Bottom right:",bottom_right)
+                # print("Top left:",top_left)
+                # print("Top right:",top_right)
+                # print("Total vertical height: ", total_vertical_height)
 
                 # (nose_end_point2D, jacobian) = cv2.projectPoints(np.array([(0.0, 0.0, 1000.0)]), rvec, tvec, camera_matrix, dist)
                 
@@ -364,18 +374,40 @@ with open('output.json') as json_file:
                 if checkIfFound(perimeter,area,angle,height_in_pixels,width_in_pixels):
                     fieldTapes.append(rect)
 
-                distancesToTape.append(getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height))
+                    distancesToTape.append(getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height))
 
-                print("Distance:",getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height))
-                if len(distancesToTape) > 1:
-                    print(distancesToTape[0])
-                    print(distancesToTape[1])
-                if len(distancesToTape) >= 2:
-                    angleToTape = getAngleToTape(distancesToTape)
-                print("Angle to tape:", angleToTape)
-                print("Image center:", thresholded_image.shape[1]/2, thresholded_image.shape[0]/2)
+                    print("Distance:",getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height))
+                    if len(distancesToTape) > 1:
+                        print(distancesToTape[0])
+                        print(distancesToTape[1])
+                    if len(distancesToTape) >= 2:
+                        angleToTape = getAngleToTape(distancesToTape)
+                    print("Angle to tape:", angleToTape)
+                    print("Image center:", thresholded_image.shape[1]/2, thresholded_image.shape[0]/2)
+
+                    # draw the corners of the rectangle and check if it's the field's vision target
+                    drawCorners(points)
+
                 # print("\n")
                 #cv2.putText(objects, ("Distance:" + getDistanceToCamera(rect,height_of_tape,focal_length,total_vertical_height)) ), (top_left[0],top_left[1]), cv2.FONT_HERSHEY_COMPLEX, 2, 255)
+
+            if(len(fieldTapes) == 2):
+                print("--SOLVEPNP  START--")
+                print('Camera matrix: ',camera_matrix)
+                print('Distortion matrix:',dist)
+                all_image_points = []
+                for x in fieldTapes:
+                    all_image_points.extend(cv2.boxPoints(rect))
+
+                retval, rvec, tvec = cv2.solvePnP(all_tape_world_coordsUMat,all_image_points,cv2.UMat(np.array(camera_matrix)), cv2.UMat(np.array(dist)))
+
+                print("RETVAL,RVEC,TVEC:")
+                print(retval)
+                print(rvec.get())
+                print(tvec.get()) 
+                print()
+            else:
+                print("Two field tapes NOT found.")
 
             # To save from hundreds of printouts, only print out number of field tapes detected if it has changed.
             if(len(fieldTapes) != lastFieldTapes):
