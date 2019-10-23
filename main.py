@@ -103,9 +103,9 @@ value_range = [227,255]
 hue_range = [0,1]
 saturation_range = [0,1]
 value_range = [245,255]
-hue_range = [86,110]
-saturation_range = [30,109]
-value_range = [202,255]
+hue_range = [80,120]
+saturation_range = [20,115]
+value_range = [192,255]
 
 # distance between tapes constant
 distanceBetweenTapes = 25.239
@@ -414,13 +414,29 @@ with open('output.json') as json_file:
                 print(rvec.get())
                 print(tvec.get()) 
                 print()
+
+                
+                # Compute the necessary output distance and angles
+                x = tvec.get()[0][0]
+                y = tvec.get()[1][0]
+                z = tvec.get()[2][0]
+                # distance in the horizontal plane between camera and target
+                distance = math.sqrt(x**2 + z**2)
+                # horizontal angle between camera center line and target
+                angle1 = math.atan2(x, z)
+                rot, _ = cv2.Rodrigues(rvec.get())
+                rot_inv = rot.transpose()
+                pzero_world = np.matmul(rot_inv, -tvec.get())
+                angle2 = math.atan2(pzero_world[0][0], pzero_world[2][0])
+                print ("Distance: %f, Angle1: %f, Angle2: %f, X: %f, Y: %f, Z: %f" % (distance, angle1, angle2, x, y, z))
             else:
                 print("Two field tapes NOT found.")
+                print()
 
-            # To save from hundreds of printouts, only print out number of field tapes detected if it has changed.
-            if(len(fieldTapes) != lastFieldTapes):
-                lastFieldTapes = len(fieldTapes)
-                print('Number of tapes:',len(fieldTapes))
+            # # To save from hundreds of printouts, only print out number of field tapes detected if it has changed.
+            # if(len(fieldTapes) != lastFieldTapes):
+            #     lastFieldTapes = len(fieldTapes)
+            #     print('Number of tapes:',len(fieldTapes))
 
         # Wait 50 milliseconds between iterations.
         given_key = cv2.waitKey(wait_time)
