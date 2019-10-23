@@ -103,6 +103,9 @@ value_range = [227,255]
 hue_range = [0,1]
 saturation_range = [0,1]
 value_range = [245,255]
+hue_range = [86,110]
+saturation_range = [30,109]
+value_range = [202,255]
 
 # distance between tapes constant
 distanceBetweenTapes = 25.239
@@ -246,10 +249,14 @@ with open('output.json') as json_file:
         ret, bgr_img = cap.read()
         # read in the image
         # bgr_img = cv2.imread('testimages/retroreflectivetapegreen.jpg')
-
+        if not ret:
+            exit("Image retrieval failure")
+        else:
+            print(ret)
         # resize the image to half its original size
         imageResized = cv2.resize(bgr_img, (0, 0), fx=0.5, fy=0.5)
-
+        # cv2.imshow("img",bgr_img)
+        # cv2.imshow("resized",imageResized)
         # Gaussian blur the image, (191,191) refers to how much the image is being blurred on the X and Y axes.
         blurred_image = cv2.GaussianBlur(imageResized, (191, 191), 1)
         # cv2.imshow("BLURRED", blurred_image)
@@ -398,7 +405,8 @@ with open('output.json') as json_file:
                 all_image_points = []
                 for x in fieldTapes:
                     all_image_points.extend(cv2.boxPoints(rect))
-
+                print("Recorded image points:",all_image_points)
+                all_image_points = cv2.UMat(np.array(all_image_points))
                 retval, rvec, tvec = cv2.solvePnP(all_tape_world_coordsUMat,all_image_points,cv2.UMat(np.array(camera_matrix)), cv2.UMat(np.array(dist)))
 
                 print("RETVAL,RVEC,TVEC:")
@@ -412,19 +420,19 @@ with open('output.json') as json_file:
             # To save from hundreds of printouts, only print out number of field tapes detected if it has changed.
             if(len(fieldTapes) != lastFieldTapes):
                 lastFieldTapes = len(fieldTapes)
-                print('Number of tapes:',fieldTapes)
+                print('Number of tapes:',len(fieldTapes))
 
-            # Wait 50 milliseconds between iterations.
-            given_key = cv2.waitKey(wait_time)
-            # Break ifg
-            if given_key == ord('x'):
-                break
+        # Wait 50 milliseconds between iterations.
+        given_key = cv2.waitKey(wait_time)
+        # Break ifg
+        if given_key == ord('x'):
+            break
 
-            # time.sleep(200)
-            # show images
-            cv2.imshow("Thresholded", thresholded_image)
-            cv2.imshow("Objects", objects)
-            #cv2.imshow("Original", imageResized)
+        # time.sleep(200)
+        # show images
+        cv2.imshow("Thresholded", thresholded_image)
+        cv2.imshow("Objects", objects)
+        #cv2.imshow("Original", imageResized)
 
     # release the camera input and end the program, destroying all windows
     cap.release()
